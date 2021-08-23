@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, aiohttp
 import datetime
 import json
 import logging
@@ -10,6 +10,9 @@ import string
 import sys
 import time
 import traceback
+
+from web3 import Web3
+from web3.middleware import geth_poa_middleware
 
 import click
 import discord
@@ -111,6 +114,97 @@ def randomString(stringLength=8):
 def truncate(number, digits) -> float:
     stepper = pow(10.0, digits)
     return math.trunc(stepper * number) / stepper
+
+
+async def erc_validate_address(address: str):
+    try:
+        # HTTPProvider:
+        w3 = Web3(Web3.HTTPProvider(config.gbs.endpoint))
+
+        # inject the poa compatibility middleware to the innermost layer
+        # w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+
+        return w3.toChecksumAddress(address)
+    except ValueError:
+        pass
+        #traceback.print_exc(file=sys.stdout)
+    return None
+
+
+async def erc_get_balance_token(address: str):
+    try:
+        validate_address = await erc_validate_address(address)
+        if validate_address is None: return None
+
+        timeout = 32
+        data = '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "'+config.gbs.contract+'", "data": "0x70a08231000000000000000000000000'+address[2:]+'"}, "latest"],"id":1}'
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(config.gbs.endpoint, headers={'Content-Type': 'application/json'}, json=json.loads(data), timeout=timeout) as response:
+                    if response.status == 200:
+                        res_data = await response.read()
+                        res_data = res_data.decode('utf-8')
+                        await session.close()
+                        decoded_data = json.loads(res_data)
+                        if decoded_data and 'result' in decoded_data:
+                            if decoded_data['result'] == "0x":
+                                balance = 0
+                            else:
+                                balance = int(decoded_data['result'], 16)
+                            return balance
+        except asyncio.TimeoutError:
+            print('TIMEOUT: get balance for {}s'.format(timeout))
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+    except ValueError:
+        traceback.print_exc(file=sys.stdout)
+
+
+async def erc_get_totalsupply_token(contract: str):
+    try:
+        validate_address = await erc_validate_address(contract)
+        if validate_address is None: return None
+
+        # 0x06fdde03 -> [ function ] name
+        # 0x095ea7b3 -> [ function ] approve
+        # 0x18160ddd -> [ function ] totalSupply    OK
+        # 0x23b872dd -> [ function ] transferFrom
+        # 0x313ce567 -> [ function ] decimals
+        # 0x475a9fa9 -> [ function ] issueTokens
+        # 0x70a08231 -> [ function ] balanceOf
+        # 0x95d89b41 -> [ function ] symbol
+        # 0xa9059cbb -> [ function ] transfer
+        # 0xdd62ed3e -> [ function ] allowance
+        # 0xddf252ad -> [ event ] Transfer
+        # 0x8c5be1e5 -> [ event ] Approval
+
+        # curl http://localhost:8545 \
+        # -X POST \
+        # -H "Content-Type: application/json" \
+        # -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "0x4A94844aC9d93BaE2B48f0b10B20B7EF1225188D", "data": "0x18160ddd"}, "latest"],"id":0}'
+
+        timeout = 32
+        data = '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "'+config.gbs.contract+'", "data": "0x18160ddd"}, "latest"],"id":1}'
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(config.gbs.endpoint, headers={'Content-Type': 'application/json'}, json=json.loads(data), timeout=timeout) as response:
+                    if response.status == 200:
+                        res_data = await response.read()
+                        res_data = res_data.decode('utf-8')
+                        await session.close()
+                        decoded_data = json.loads(res_data)
+                        if decoded_data and 'result' in decoded_data:
+                            if decoded_data['result'] == "0x":
+                                supply = 0
+                            else:
+                                supply = int(decoded_data['result'], 16)
+                            return supply
+        except asyncio.TimeoutError:
+            print('TIMEOUT: get supply for {}s'.format(timeout))
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+    except ValueError:
+        traceback.print_exc(file=sys.stdout)
 
 
 @click.command()

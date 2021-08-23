@@ -7,12 +7,10 @@ import discord
 from discord.ext import commands
 import aiohttp, asyncio
 import json
-
-from web3 import Web3
-from web3.middleware import geth_poa_middleware
+from ethtoken import token
 
 import Bot
-from Bot import EMOJI_ERROR, EMOJI_OK_BOX, EMOJI_OK_HAND, EMOJI_INFORMATION, logchanbot
+from Bot import EMOJI_ERROR, EMOJI_OK_BOX, EMOJI_OK_HAND, EMOJI_INFORMATION, logchanbot, erc_get_totalsupply_token
 from config import config
 
 
@@ -24,12 +22,6 @@ class Stats(commands.Cog):
     @commands.command(usage='stats', aliases=['stat'], description="Statistic")
     async def stats(self, ctx):
         try:
-            # HTTPProvider:
-            w3 = Web3(Web3.HTTPProvider(config.gbs.endpoint))
-
-            # inject the poa compatibility middleware to the innermost layer
-            w3.middleware_onion.inject(geth_poa_middleware, layer=0)
-
             embed = discord.Embed(title="Statistic", description="GoodBoi Society on Ethereum", timestamp=datetime.utcnow())
             
             # Get block number
@@ -51,6 +43,12 @@ class Stats(commands.Cog):
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
             embed.add_field(name="Contract", value="{}".format(config.gbs.contract), inline=False)
+            try:
+                supply = await erc_get_totalsupply_token(config.gbs.contract)
+                if supply:
+                    embed.add_field(name="Total Supply", value="{:,.0f}".format(supply), inline=True)
+            except Exception as e:
+                print(traceback.format_exc())
             await ctx.send(embed=embed)
         except Exception as e:
             print(traceback.format_exc())
