@@ -120,7 +120,58 @@ def truncate(number, digits) -> float:
 def db_verify_login(userId: int, address: str):
     con = sqlite3.connect(config.gbs.path_db_verify)
     cur = con.cursor()
-    cur.execute("SELECT * FROM users WHERE LOWER(publicAddress)=? AND username=? LIMIT 1", (address.lower(), str(userId)))
+    cur.execute("SELECT * FROM users WHERE LOWER(publicAddress)=? AND username=? LIMIT 1", (address.lower(), str(userId), ))
+    result = cur.fetchone()
+    con.close()
+    if result:
+        return result
+    return None
+
+
+def db_turn_verified_on(userId: int, address: str):
+    try:
+        con = sqlite3.connect(config.gbs.path_db_verify)
+        cur = con.cursor()
+        cur.execute("UPDATE users SET isVerified=1, verifiedDate=? WHERE LOWER(publicAddress)=? AND username=? AND isVerified=0 LIMIT 1", (int(time.time()), address.lower(), str(userId, )))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+    return None
+
+
+def db_turn_verified_off(userId: int):
+    try:
+        con = sqlite3.connect(config.gbs.path_db_verify)
+        cur = con.cursor()
+        cur.execute("UPDATE users SET isVerified=0, unverifiedDate=? WHERE username=? AND isVerified=1 LIMIT 1", (int(time.time()), str(userId), ))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+    return None
+
+
+def db_verify_if_address_exists(address: str):
+    try:
+        con = sqlite3.connect(config.gbs.path_db_verify)
+        cur = con.cursor()
+        cur.execute("SELECT * FROM users WHERE LOWER(publicAddress)=? AND isVerified=1 LIMIT 1", (address.lower(), ))
+        result = cur.fetchone()
+        con.close()
+        if result:
+            return result
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+    return None
+
+
+def db_if_user_verified(userId: str):
+    con = sqlite3.connect(config.gbs.path_db_verify)
+    cur = con.cursor()
+    cur.execute("SELECT * FROM users WHERE username=? AND isVerified=1 LIMIT 1", (userId, ))
     result = cur.fetchone()
     con.close()
     if result:

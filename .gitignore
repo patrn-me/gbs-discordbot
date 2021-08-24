@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 config.yml
 ethFilter_Sample_1.py
+db.sqlite
