@@ -16,6 +16,7 @@ from web3.middleware import geth_poa_middleware
 
 import click
 import discord
+import sqlite3
 
 from discord.ext import commands
 from discord.ext.commands import AutoShardedBot, when_mentioned_or
@@ -114,6 +115,17 @@ def randomString(stringLength=8):
 def truncate(number, digits) -> float:
     stepper = pow(10.0, digits)
     return math.trunc(stepper * number) / stepper
+
+
+def db_verify_login(userId: int, address: str):
+    con = sqlite3.connect(config.gbs.path_db_verify)
+    cur = con.cursor()
+    cur.execute("SELECT * FROM users WHERE LOWER(publicAddress)=? AND username=? LIMIT 1", (address.lower(), str(userId)))
+    result = cur.fetchone()
+    con.close()
+    if result:
+        return result
+    return None
 
 
 async def erc_validate_address(address: str):
