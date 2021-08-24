@@ -24,6 +24,14 @@ class Vgbs(commands.Cog):
             await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} This command can not be in private.')
             return
         
+        if ctx.channel.id != config.gbs.verify_channel:
+            try:
+                await ctx.message.delete()
+                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Please use <#{str(config.gbs.verify_channel)}>')
+            except Exception as e:
+                print(traceback.format_exc())
+            return
+
         get_balance = 0
         if address is None:
             await ctx.send(f'{ctx.author.mention} `address` is missing.')
