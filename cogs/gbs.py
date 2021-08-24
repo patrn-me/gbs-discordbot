@@ -27,7 +27,7 @@ class Gbs(commands.Cog):
         else:
             validate_addr = await erc_validate_address(address)
             if validate_addr is None:
-                await ctx.send(f'Address: `{address}` is invalid.')
+                await ctx.send(f'{ctx.author.mention} address: `{address}` is invalid.')
                 return
             else:
                 try:
@@ -38,6 +38,7 @@ class Gbs(commands.Cog):
             embed = discord.Embed(title="GoodBoi Society", description="GoodBoi Society on Ethereum", timestamp=datetime.utcnow())
             embed.add_field(name="Address", value="{}".format(address), inline=False)
             embed.add_field(name="Quantity", value="{}".format(get_balance), inline=False)
+            embed.set_footer(text=f"Requested by: {ctx.author.mention}")
             await ctx.send(embed=embed)
         except Exception as e:
             print(traceback.format_exc())

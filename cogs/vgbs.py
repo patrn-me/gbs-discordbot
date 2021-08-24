@@ -21,20 +21,17 @@ class Vgbs(commands.Cog):
     @commands.command(usage='vgbs', description="Verify your GoodBoi Society")
     async def vgbs(self, ctx, address: str=None):
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send(f'{EMOJI_ERROR} This command can not be in private.')
+            await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} This command can not be in private.')
             return
-
-        # TODO: If he is already verified, skip this command
-        # TODO: If an address was verified by other user already. Reject.
         
         get_balance = 0
         if address is None:
-            await ctx.send('`address` is missing.')
+            await ctx.send(f'{ctx.author.mention} `address` is missing.')
             return
         else:
             validate_addr = await erc_validate_address(address)
             if validate_addr is None:
-                await ctx.send(f'Address: `{address}` is invalid.')
+                await ctx.send(f'{ctx.author.mention}: address `{address}` is invalid.')
                 return
             else:
                 # Check if user already verified
@@ -47,9 +44,9 @@ class Vgbs(commands.Cog):
                             gbs_role = discord.utils.get(ctx.guild.roles, name=config.gbs.role_name)
                             if gbs_role and gbs_role not in ctx.author.roles:
                                 await ctx.author.add_roles(gbs_role)
-                                await ctx.send(f'You have been verified now. Thank you!')
+                                await ctx.send(f'{ctx.author.mention} You are verified now. Thank you!')
                             elif gbs_role and gbs_role in ctx.author.roles:
-                                await ctx.send('You already verified.')
+                                await ctx.send(f'{ctx.author.mention} You already verified.')
                         return
                 except Exception as e:
                     print(traceback.format_exc())
@@ -59,7 +56,7 @@ class Vgbs(commands.Cog):
                 try:
                     check_address = db_verify_if_address_exists(address)
                     if check_address:
-                        await ctx.send(f'Address: `{address}` is already used and verified by other users.')
+                        await ctx.send(f'{ctx.author.mention}: address `{address}` is already used and verified by other users.')
                         return
                 except Exception as e:
                     print(traceback.format_exc())
@@ -70,7 +67,7 @@ class Vgbs(commands.Cog):
                     print(traceback.format_exc())
         try:
             if get_balance == 0:
-                await ctx.send(f'Address: `{address}` owns nothing besides salt.')
+                await ctx.send(f'{ctx.author.mention}: address `{address}` owns nothing besides salt.')
                 return
             else:
                 try:
@@ -84,11 +81,11 @@ class Vgbs(commands.Cog):
                                 gbs_role = discord.utils.get(ctx.guild.roles, name=config.gbs.role_name)
                                 if gbs_role and gbs_role not in ctx.author.roles:
                                     await ctx.author.add_roles(gbs_role)
-                                    await ctx.send(f'You have been verified now. Thank you!')
+                                    await ctx.send(f'{ctx.author.mention} You are verified now. Thank you!')
                                 else:
-                                    await ctx.send(f'You have been verified now but you have a role already. Thank you!')
+                                    await ctx.send(f'{ctx.author.mention} You have been verified now but you have a role already. Thank you!')
                     else:
-                        await ctx.send(f'OK, address: `{address}` owns some doggo here but not yet verify ownership. Please sign and put your discord ID here: {config.gbs.verify_link}')
+                        await ctx.send(f'{ctx.author.mention} OK, address: `{address}` owns some doggo here but not yet verified ownership. Please sign and put your discord ID here: {config.gbs.verify_link}')
                     return
                 except Exception as e:
                     print(traceback.format_exc())

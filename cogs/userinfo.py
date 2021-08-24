@@ -22,6 +22,7 @@ class UserInfo(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             await ctx.send(f'{ctx.author.mention} This command can not be in Direct Message.')
             return
+
         if member is None:
             member = ctx.author
             userid = str(ctx.author.id)
@@ -37,6 +38,7 @@ class UserInfo(commands.Cog):
             embed.add_field(name="Joined", value=str(member.joined_at.strftime("%d-%b-%Y") + ': ' + timeago.format(member.joined_at, datetime.utcnow())))
             embed.add_field(name="Created", value=str(member.created_at.strftime("%d-%b-%Y") + ': ' + timeago.format(member.created_at, datetime.utcnow())))
             embed.set_thumbnail(url=member.avatar_url)
+            embed.set_footer(text=f"Requested by: {ctx.author.mention}")
             await ctx.send(embed=embed)
         except Exception as e:
             print(traceback.format_exc())

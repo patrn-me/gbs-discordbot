@@ -49,6 +49,7 @@ class Stats(commands.Cog):
                     embed.add_field(name="Total Supply", value="{:,.0f}".format(supply), inline=True)
             except Exception as e:
                 print(traceback.format_exc())
+            embed.set_footer(text=f"Requested by: {ctx.author.mention}")
             await ctx.send(embed=embed)
         except Exception as e:
             print(traceback.format_exc())
