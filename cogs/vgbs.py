@@ -47,6 +47,11 @@ class Vgbs(commands.Cog):
                                 await ctx.send(f'{ctx.author.mention} You are verified now. Thank you!')
                             elif gbs_role and gbs_role in ctx.author.roles:
                                 await ctx.send(f'{ctx.author.mention} You already verified.')
+                            # Message should be delete after success
+                            try:
+                                await ctx.message.delete()
+                            except Exception as e:
+                                print(traceback.format_exc())
                         return
                 except Exception as e:
                     print(traceback.format_exc())
