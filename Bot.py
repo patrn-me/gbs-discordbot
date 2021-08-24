@@ -270,8 +270,66 @@ async def erc_get_totalsupply_token(contract: str):
         traceback.print_exc(file=sys.stdout)
 
 
+def db_verify_if_address_exists(address: str):
+    try:
+        con = sqlite3.connect(config.gbs.path_db_verify)
+        cur = con.cursor()
+        cur.execute("SELECT * FROM users WHERE LOWER(publicAddress)=? AND isVerified=1 LIMIT 1", (address.lower(), ))
+        result = cur.fetchone()
+        con.close()
+        if result:
+            return result
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+    return None
+
+
+# Check ownership of each address which was verified
+async def check_ownership_update():
+    INTERVAL_EACH = config.gbs.interval_balance
+    while True:
+        await asyncio.sleep(INTERVAL_EACH)
+        start = time.time()
+        try:
+            con = sqlite3.connect(config.gbs.path_db_verify)
+            cur = con.cursor()
+            cur.execute("SELECT username, publicAddress FROM users WHERE isVerified=1")
+            result = cur.fetchall()
+            if result and len(result) > 0:
+                # Check balance
+                for item in result:
+                    try:
+                        get_balance = await erc_get_balance_token(item[1])
+                        if get_balance == 0:
+                            # If they do not have gbs, Find user
+                            get_guild = bot.get_guild(id=config.gbs.guild_watch)
+                            if get_guild:
+                                member = get_guild.get_member(int(item[0]))
+                                set_verify_off = db_turn_verified_off(member.id)
+                                if member and set_verify_off:
+                                    try:
+                                        await member.send('Your address `{}` does not have any GBS now.'.format(item[1]))
+                                    except Exception as e:
+                                        print(traceback.format_exc())
+                                    try:
+                                        gbs_role = discord.utils.get(get_guild.roles, name=config.gbs.role_name)
+                                        if gbs_role and member.roles and gbs_role in member.roles:
+                                            await member.remove_roles(gbs_role)
+                                            await member.send(f'Your role has been removed!')
+                                            print('Remove role of user: {}'.format(item[0]))
+                                    except Exception as e:
+                                        print(traceback.format_exc())
+                    except Exception as e:
+                        print(traceback.format_exc())
+        except Exception as e:
+            print(e)
+        end = time.time()
+        await asyncio.sleep(INTERVAL_EACH)
+
+
 @click.command()
 def main():
+    bot.loop.create_task(check_ownership_update())
     for filename in os.listdir('./cogs/'):
         if filename.endswith('.py'):
             bot.load_extension(f'cogs.{filename[:-3]}')
